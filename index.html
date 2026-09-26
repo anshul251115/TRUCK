@@ -1,0 +1,222 @@
+<!doctype html>
+<html>
+	<head>
+		<meta charset="utf-8">
+		<meta name="robots" content="noindex,nofollow">
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+		<meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+		<meta name="apple-mobile-web-app-capable" content="yes">
+		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+		<meta name="HandheldFriendly" content="true">
+		<title>Truck Trials - Unity Playable Ad</title>
+
+		<!-- Unity MRAID SDK -->
+		<script src="mraid.js"></script>
+
+		<style>
+			* {
+				padding: 0;
+				margin: 0;
+				box-sizing: border-box;
+				-webkit-touch-callout: none;
+				-webkit-user-select: none;
+				user-select: none;
+			}
+
+			html, body {
+				background: #000000;
+				color: #fff;
+				font-family: Arial, "Helvetica Neue", sans-serif;
+				height: 100vh;
+				width: 100vw;
+				overflow: hidden;
+				position: relative;
+			}
+
+			#gameContainer {
+				position: relative;
+				width: 100%;
+				height: 100%;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+			}
+
+			#game-iframe {
+				width: 100%;
+				height: 100%;
+				border: none;
+				background-color: #000;
+			}
+
+			/* Touch Controls Overlay Layer */
+			.controls-layer {
+				position: absolute;
+				bottom: 15px;
+				left: 0;
+				width: 100%;
+				display: flex;
+				justify-content: space-between;
+				padding: 0 20px;
+				pointer-events: none; /* Let background touches register if needed */
+				z-index: 999;
+			}
+
+			.control-group {
+				display: flex;
+				gap: 15px;
+				pointer-events: auto;
+			}
+
+			.btn-ctrl {
+				width: 65px;
+				height: 65px;
+				background: rgba(0, 0, 0, 0.65);
+				border: 2px solid rgba(255, 255, 255, 0.8);
+				border-radius: 50%;
+				color: #ffffff;
+				font-weight: bold;
+				font-size: 14px;
+				display: flex;
+				justify-content: center;
+				align-items: center;
+				cursor: pointer;
+				box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+				touch-action: manipulation;
+			}
+
+			.btn-ctrl:active {
+				background: rgba(255, 255, 255, 0.4);
+				transform: scale(0.95);
+			}
+
+			.btn-break {
+				background: rgba(200, 35, 51, 0.7);
+				border-color: #ff4d4d;
+			}
+
+			/* CSS Auto-Rotation and Responsive Adjustment for Mobile */
+			@media screen and (orientation: portrait) {
+				.controls-layer {
+					bottom: 25px;
+					padding: 0 15px;
+				}
+				.btn-ctrl {
+					width: 55px;
+					height: 55px;
+					font-size: 12px;
+				}
+			}
+
+			@media screen and (orientation: landscape) {
+				.controls-layer {
+					bottom: 15px;
+					padding: 0 40px;
+				}
+			}
+		</style>
+	</head>
+	<body>
+		<div id="gameContainer">
+			<iframe id="game-iframe" webkit-playsinline="true" scrolling="no" frameborder="0" allow="autoplay"></iframe>
+
+			<!-- Touch Controls for Back, Front, and Break -->
+			<div class="controls-layer">
+				<!-- Left Group: Back / Reverse and Break -->
+				<div class="control-group">
+					<div class="btn-ctrl" id="btn-back">◄ BACK</div>
+					<div class="btn-ctrl btn-break" id="btn-break">BREAK</div>
+				</div>
+
+				<!-- Right Group: Front / Drive -->
+				<div class="control-group">
+					<div class="btn-ctrl" id="btn-front">FRONT ►</div>
+				</div>
+			</div>
+		</div>
+
+		<script>
+			// Helper to pass user actions or redirect to App Store via Unity MRAID
+			function onControlInteraction(action) {
+				console.log("Control triggered: " + action);
+				
+				// Optional: If you want clicking any control after interaction to prompt Unity Store URL
+				/*
+				if (typeof mraid !== 'undefined' && mraid.open) {
+					mraid.open();
+				}
+				*/
+			}
+
+			// Add Touch and Click Listeners to On-Screen Controls
+			function attachControlListeners() {
+				const buttons = [
+					{ id: 'btn-back', action: 'back' },
+					{ id: 'btn-break', action: 'break' },
+					{ id: 'btn-front', action: 'front' }
+				];
+
+				buttons.forEach(btnInfo => {
+					const elem = document.getElementById(btnInfo.id);
+					if (elem) {
+						elem.addEventListener('touchstart', function(e) {
+							e.preventDefault();
+							onControlInteraction(btnInfo.action + '_down');
+						}, { passive: false });
+
+						elem.addEventListener('touchend', function(e) {
+							e.preventDefault();
+							onControlInteraction(btnInfo.action + '_up');
+						}, { passive: false });
+
+						elem.addEventListener('click', function() {
+							onControlInteraction(btnInfo.action);
+						});
+					}
+				});
+			}
+
+			// Initialize game upon MRAID readiness
+			function loadGame() {
+				const packageId = "truck-trials";
+				let affiliateId = "A1000-10";
+				const iframe = document.querySelector("#game-iframe");
+
+				if (affiliateId === "A1000-10") {
+					affiliateId += (Math.random() >= 0.5) ? "A" : "B";
+				}
+
+				if (iframe && !iframe.getAttribute("src")) {
+					iframe.setAttribute("src", 'https://play.famobi.com/' + packageId + "/" + affiliateId);
+				}
+			}
+
+			function onSdkReady() {
+				if (mraid.isViewable()) {
+					loadGame();
+				} else {
+					mraid.addEventListener('viewableChange', function(viewable) {
+						if (viewable) loadGame();
+					});
+				}
+			}
+
+			function initMraid() {
+				attachControlListeners();
+
+				if (typeof mraid !== 'undefined') {
+					if (mraid.getState() === 'loading') {
+						mraid.addEventListener('ready', onSdkReady);
+					} else {
+						onSdkReady();
+					}
+				} else {
+					loadGame();
+				}
+			}
+
+			window.addEventListener('load', initMraid);
+		</script>
+	</body>
+</html>
